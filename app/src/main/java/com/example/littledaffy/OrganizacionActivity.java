@@ -62,8 +62,9 @@ public class OrganizacionActivity extends AppCompatActivity {
         database.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
+                organizacionDtoList.clear();
                 for (DataSnapshot dataSnapshot : snapshot.getChildren()) {
-                    organizacionDtoList.clear();
+
                     OrganizacionDto organizacionDto = dataSnapshot.getValue(OrganizacionDto.class);
                     int estado = organizacionDto.getEstado_organizacion();
                     if (estado == 1) {

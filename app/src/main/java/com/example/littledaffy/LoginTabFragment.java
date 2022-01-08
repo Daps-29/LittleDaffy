@@ -1,5 +1,6 @@
 package com.example.littledaffy;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -7,6 +8,7 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -15,6 +17,9 @@ import androidx.fragment.app.Fragment;
 import com.facebook.AccessTokenTracker;
 import com.facebook.CallbackManager;
 import com.facebook.login.widget.LoginButton;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
+import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 
 public class LoginTabFragment extends Fragment {
@@ -22,6 +27,9 @@ public class LoginTabFragment extends Fragment {
     EditText email;
     EditText contra;
     TextView olvidaste;
+    private String em = "";
+    private String pa = "";
+
     Button login;
     float v=0;
     private CallbackManager mCallbackManager;
@@ -34,11 +42,18 @@ public class LoginTabFragment extends Fragment {
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         ViewGroup root = (ViewGroup) inflater.inflate(R.layout.login_tab_fragment, container, false);
-
+        mFirebaseAuth = FirebaseAuth.getInstance();
         email = root.findViewById(R.id.email);
         contra = root.findViewById(R.id.password);
         olvidaste = root.findViewById(R.id.olvi);
         login = root.findViewById(R.id.login);
+
+        olvidaste.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                startActivity(new Intent(LoginTabFragment.this.getContext(),ResetPasswordActivity.class));
+            }
+        });
 
         email.setTranslationX(800);
         contra.setTranslationX(800);
@@ -55,7 +70,33 @@ public class LoginTabFragment extends Fragment {
         olvidaste.animate().translationX(0).alpha(1).setDuration(800).setStartDelay(500).start();
         login.animate().translationX(0).alpha(1).setDuration(800).setStartDelay(700).start();
 
+        login.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                em = email.getText().toString();
+                pa = contra.getText().toString();
+                if (!em.isEmpty() && !pa.isEmpty()) {
+                    loginUser();
+                }else {
+                    Toast.makeText(LoginTabFragment.this.getContext(), "Complete los campos", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+
         return root;
+    }
+    private void loginUser(){
+        mFirebaseAuth.signInWithEmailAndPassword(em,pa).addOnCompleteListener(new OnCompleteListener<AuthResult>() {
+            @Override
+            public void onComplete(@NonNull Task<AuthResult> task) {
+                if (task.isSuccessful()){
+                    startActivity(new Intent(LoginTabFragment.this.getContext(),MainActivity.class));
+
+                }else{
+                    Toast.makeText(LoginTabFragment.this.getContext(), "Error", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
     }
 
 }

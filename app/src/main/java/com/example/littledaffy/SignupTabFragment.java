@@ -94,7 +94,11 @@ public class SignupTabFragment extends Fragment {
                     id = mAuth.getCurrentUser().getUid();
                     int tipou = 1;
                     String idu= id;
-                    RegisterHelper registerHelper = new RegisterHelper(name1,ape1,email1,pass1,idu,tipou);
+                    String direc = "";
+                    String foto ="";
+                    String telefono="";
+                    String sexo ="";
+                    RegisterHelper registerHelper = new RegisterHelper(name1,ape1,email1,pass1,idu,tipou,direc,foto,telefono,sexo);
 
 
 

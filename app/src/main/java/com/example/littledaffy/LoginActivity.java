@@ -39,12 +39,17 @@ import com.google.firebase.auth.FacebookAuthProvider;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.GoogleAuthProvider;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+
+import java.util.HashMap;
 
 public class LoginActivity extends AppCompatActivity {
     TabLayout tabLayout;
     ViewPager viewPager;
     FloatingActionButton google;
     private Button loginb;
+    private GoogleSignInClient mgoogleSignInClient;
     float v=0;
     private CallbackManager mCallbackManager;
     private FirebaseAuth mFirebaseAuth;
@@ -52,6 +57,7 @@ public class LoginActivity extends AppCompatActivity {
     private FirebaseAuth.AuthStateListener authStateListener;
     private AccessTokenTracker accessTokenTracker;
     private static final String TAG = "Autorizado";
+    private static final int RC_SIGN_IN = 123;
     //login
     private String em = "";
     private String pa = "";
@@ -94,7 +100,14 @@ public class LoginActivity extends AppCompatActivity {
 
         mCallbackManager = CallbackManager.Factory.create();
 
+        crearsolicitud();
 
+        google.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                sigIn();
+            }
+        });
         loginButton.registerCallback(mCallbackManager, new FacebookCallback<LoginResult>() {
             @Override
             public void onSuccess(LoginResult loginResult) {
@@ -136,6 +149,20 @@ public class LoginActivity extends AppCompatActivity {
         // login email
 
     }
+    private void crearsolicitud(){
+
+        GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                .requestIdToken("417998320479-4lod7c6bdrtoc05vauop80ngp0pfbbc7.apps.googleusercontent.com")
+                .requestEmail()
+                .build();
+        mgoogleSignInClient = GoogleSignIn.getClient(this,gso);
+
+
+    }
+    private void sigIn(){
+        Intent sigIntent = mgoogleSignInClient.getSignInIntent();
+        startActivityForResult(sigIntent,RC_SIGN_IN);
+    }
     private void handleFacebookToken(AccessToken token){
         Log.d(TAG, "handleFacebookToken"+token);
         AuthCredential credential = FacebookAuthProvider.getCredential(token.getToken());
@@ -159,6 +186,48 @@ public class LoginActivity extends AppCompatActivity {
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         mCallbackManager.onActivityResult(requestCode, resultCode,data);
         super.onActivityResult(requestCode, resultCode, data);
+
+        if (requestCode == RC_SIGN_IN){
+            Task<GoogleSignInAccount> task = GoogleSignIn.getSignedInAccountFromIntent(data);
+            try {
+                GoogleSignInAccount account = task.getResult(ApiException.class);
+                AutenticacionFirebase(account);
+            }catch (ApiException e){
+                Toast.makeText(this, e.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+    private void AutenticacionFirebase(GoogleSignInAccount account){
+        AuthCredential credential = GoogleAuthProvider.getCredential(account.getIdToken(),null);
+        mFirebaseAuth.signInWithCredential(credential).addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
+            @Override
+            public void onComplete(@NonNull Task<AuthResult> task) {
+                if (task.isSuccessful()){
+                    FirebaseUser usr = mFirebaseAuth.getCurrentUser();
+                    if (task.getResult().getAdditionalUserInfo().isNewUser()){
+                        String idu = usr.getUid();
+                        String correo = usr.getEmail();
+                        String nombre = usr.getDisplayName();
+                        HashMap<Object,String> DatosUusuario = new HashMap<>();
+                        DatosUusuario.put("id",idu);
+                        DatosUusuario.put("correo",correo);
+                        DatosUusuario.put("nombre",nombre);
+                        DatosUusuario.put("telefono","");
+                        DatosUusuario.put("direccion","");
+                        DatosUusuario.put("foto","");
+                        DatosUusuario.put("sexo","");
+                        DatosUusuario.put("tipou","1");
+
+                        FirebaseDatabase database = FirebaseDatabase.getInstance();
+                        DatabaseReference reference = database.getReference("usuarios");
+                        reference.child(idu).setValue(DatosUusuario);
+                    }
+                    startActivity(new Intent(LoginActivity.this,MainActivity.class));
+                }else{
+                    Toast.makeText(LoginActivity.this, "Error", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
     }
 
     private void updateUI(FirebaseUser user){
@@ -171,6 +240,10 @@ public class LoginActivity extends AppCompatActivity {
     protected void onStart() {
         super.onStart();
         mFirebaseAuth.addAuthStateListener(authStateListener);
+        if (mFirebaseAuth.getCurrentUser() !=null){
+            startActivity(new Intent(LoginActivity.this,MainActivity.class));
+            finish();
+        }
     }
 
     @Override
@@ -181,17 +254,5 @@ public class LoginActivity extends AppCompatActivity {
 
         }
     }
-    private void loginUser(){
-        mFirebaseAuth.signInWithEmailAndPassword(em,pa).addOnCompleteListener(new OnCompleteListener<AuthResult>() {
-            @Override
-            public void onComplete(@NonNull Task<AuthResult> task) {
-                if (task.isSuccessful()){
-                    startActivity(new Intent(LoginActivity.this,OrganizacionActivity.class));
-                    finish();
-                }else{
-                    Toast.makeText(LoginActivity.this, "Error", Toast.LENGTH_SHORT).show();
-                }
-            }
-        });
-    }
+
 }
